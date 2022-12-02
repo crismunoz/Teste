@@ -22,10 +22,11 @@ class Trainer:
     Trainer class support traditional classifier training and adverarial training.
     """
 
-    def __init__(self, adverarial_debiasing_model, trainloader, train_args, use_debias):
+    def __init__(self, adverarial_debiasing_model, trainloader, testloader, train_args, use_debias):
         self.train_args = train_args
         self.adverarial_debiasing_model = adverarial_debiasing_model
         self.trainloader = trainloader
+        self.testloader = testloader
         self.use_debias = use_debias
         self.build()
 
@@ -84,23 +85,11 @@ class Trainer:
 
         # grad adversarial Loss POS
         new_inputs = (inputs[0], labels, inputs[2])
-        z_prob, _ = self.adverarial_debiasing_model.adversarial(*new_inputs)
-        #print(z_prob)
-        loss_adv = self.loss_adv_fn(z_prob, pos)
-        adversarial_params = list(
-            self.adverarial_debiasing_model.adversarial.parameters()
-        )
-        dloss_adv = torch.autograd.grad(
-            outputs=loss_adv, inputs=adversarial_params, retain_graph=True
-        )
-        for param, grad in zip(adversarial_params, dloss_adv):
-            param.grad = grad
-        self.optimizer_adv.step()
-
+        z_prob_pos, _ = self.adverarial_debiasing_model.adversarial(*new_inputs)
         # grad adversarial Loss NEG
-        z_prob, _ = self.adverarial_debiasing_model.adversarial(*inputs)
+        z_prob_neg, _ = self.adverarial_debiasing_model.adversarial(*inputs)
         #print(z_prob)
-        loss_adv = self.loss_adv_fn(z_prob, neg)
+        loss_adv = loss_adv = self.loss_adv_fn(z_prob_pos, pos) + self.loss_adv_fn(z_prob_neg, neg)
         adversarial_params = list(
             self.adverarial_debiasing_model.adversarial.parameters()
         )
@@ -129,9 +118,17 @@ class Trainer:
         self.optimizer_reg.step()
         return loss_reg, None
 
+    def get_loss(self, data):
+        """Traditional classifier tran step"""
+        inputs, (labels, neg, pos) = data
+        outputs = self.adverarial_debiasing_model(*inputs)
+        loss_reg = self.loss_reg_fn(outputs[0], labels)
+        return loss_reg
+    
     def train(self):
         """Traditional one epoch"""
         running_loss = {"reg": [], "adv": []}
+        eval_loss = []
         for ep in tqdm(range(self.train_args.epochs), total=self.train_args.epochs):
           for i, data in enumerate(self.trainloader, 0):
                           
@@ -150,6 +147,10 @@ class Trainer:
               self.scheduler_reg.step()
               self.scheduler_adv.step()
 
-          log = f"[{self.train_args.initial_epoch + 1}, {i + 1:5d}] loss: {sum(running_loss['reg']) / len(running_loss['reg']):.3f} \
-                  adv_loss: {sum(running_loss['adv']) / len(running_loss['adv']):.3f}"
-        return running_loss
+          loss = [self.get_loss(data).item() for data in self.testloader]
+          eval_loss.append(sum(loss)/len(loss))
+              
+          #log = f"[{self.train_args.initial_epoch + 1}, {i + 1:5d}] loss: {sum(running_loss['reg']) / len(running_loss['reg']):.3f} \
+          #        adv_loss: {sum(running_loss['adv']) / len(running_loss['adv']):.3f}"
+        return running_loss, eval_loss
+    
