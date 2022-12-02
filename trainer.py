@@ -44,15 +44,15 @@ class Trainer:
         self.loss_reg_fn = nn.MSELoss()
         self.loss_adv_fn = nn.BCELoss()
 
-        self.optimizer_reg = optim.SGD(
+        self.optimizer_reg = optim.Adam(
             self.adverarial_debiasing_model.regressor.parameters(),
             lr=self.train_args.initial_lr,
-            momentum=0.9,
+            #momentum=0.9,
         )
-        self.optimizer_adv = optim.SGD(
+        self.optimizer_adv = optim.Adam(
             self.adverarial_debiasing_model.adversarial.parameters(),
             lr=self.train_args.initial_lr,
-            momentum=0.9,
+            #momentum=0.9,
         )
 
         self.scheduler_reg = torch.optim.lr_scheduler.LinearLR(
@@ -89,7 +89,7 @@ class Trainer:
         # grad adversarial Loss NEG
         z_prob_neg, _ = self.adverarial_debiasing_model.adversarial(*inputs)
         #print(z_prob)
-        loss_adv = loss_adv = self.loss_adv_fn(z_prob_pos, pos) + self.loss_adv_fn(z_prob_neg, neg)
+        loss_adv = self.loss_adv_fn(z_prob_pos, pos) + self.loss_adv_fn(z_prob_neg, neg)
         adversarial_params = list(
             self.adverarial_debiasing_model.adversarial.parameters()
         )
