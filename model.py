@@ -7,7 +7,7 @@ class TruncateModel(nn.Module):
         super().__init__()
         self.hidden = nn.Linear(feature_dim+2, hidden_size)
         self.hidden2 = nn.Linear(hidden_size, hidden_size)
-        self.act = nn.ReLU()
+        self.act = nn.Tanh()
 
     def forward(self, time, x0, param):
         x = torch.cat((time, x0, param), 1)
