@@ -10,7 +10,7 @@ import random
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--adversary_loss_weight', type=float, default=0.01)
+    parser.add_argument('--adversary_loss_weight', type=float, default=-1.0)
     args = parser.parse_args()
     
     dataset = load_dataset()
