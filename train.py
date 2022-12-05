@@ -49,5 +49,5 @@ for name,config in configs.items():
     errors_1[name] = np.mean(error_1)
     errors_2[name] = np.mean(error_2)
     
-print(error_1)
-print(error_2)
+print(errors_1)
+print(errors_2)
