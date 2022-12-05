@@ -4,7 +4,8 @@ from train_utils import evaluate, train_model, Config
 import pandas as pd
 import numpy as np
 import argparse
-
+import os
+import pickle
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -26,8 +27,14 @@ if __name__ == '__main__':
         config.adversary_loss_weight = args.adversary_loss_weight
         name = 'normal'
         
+    output_folder = os.path.join('models',name)
+    os.makedirs(output_folder, exist_ok=True)
+    
     running_loss , model = train_model(train, test, config, name=name)
-
+    reg_loss = running_loss[0]['reg']
+    adv_loss = running_loss[0]['adv']
+    eval_loss = running_loss[1]
+        
     y_trues = []
     y_pred_1s = []
     y_pred_2s = []
@@ -41,9 +48,6 @@ if __name__ == '__main__':
     y_pred_1s = np.concatenate(y_pred_1s, axis=0)
     y_pred_2s = np.concatenate(y_pred_2s, axis=0)
         
-    df = pd.DataFrame()
-    df['y_true'] = y_trues
-    df['y_pred_1s'] = y_pred_1s
-    df['y_pred_2s'] = y_pred_2s
-                    
-    df.to_csv(f"{name}.csv", index=False)
+    data = (reg_loss, adv_loss, eval_loss, y_trues, y_pred_1s, y_pred_2s)
+    pickle.dump(data, open(os.path.join(output_folder,f"results.pl"), 'wb'))
+    

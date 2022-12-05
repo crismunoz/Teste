@@ -8,7 +8,7 @@ class Config:
     min_delta=1e-5
     
     hidden_size=64
-    keep_prob=0.0
+    keep_prob=0.05
     device='cuda'
     batch_size=256
     epochs=200

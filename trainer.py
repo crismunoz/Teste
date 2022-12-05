@@ -38,7 +38,7 @@ class Trainer:
         self.build()
 
         self.early_stopping = EarlyStopper(patience=train_args.patience, min_delta=train_args.min_delta)
-        self.best_checkpoint = SaveChcekpoint(model_path=f'./models/{name}')
+        self.best_checkpoint = SaveChcekpoint(model_path=f'./models/{name}/model')
 
     def update_gradients(self, regressor_params, dloss_reg, dloss_adv):
         """update classifier gradients with adversarial model"""
@@ -96,9 +96,8 @@ class Trainer:
         # grad adversarial Loss POS
         new_inputs = (inputs[0], labels, inputs[2])
         z_prob_pos, _ = self.adverarial_debiasing_model.adversarial(*new_inputs)
-        # grad adversarial Loss NEG
         z_prob_neg, _ = self.adverarial_debiasing_model.adversarial(*inputs)
-        #print(z_prob)
+        
         loss_adv = self.loss_adv_fn(z_prob_pos, pos) + self.loss_adv_fn(z_prob_neg, neg)
         adversarial_params = list(
             self.adverarial_debiasing_model.adversarial.parameters()
@@ -157,8 +156,10 @@ class Trainer:
 
               self.scheduler_reg.step()
               self.scheduler_adv.step()
-
+        
+          self.adverarial_debiasing_model.eval()
           loss = [self.get_loss(data).item() for data in self.testloader]
+          self.adverarial_debiasing_model.train()
           val_loss = sum(loss)/len(loss)
           eval_loss.append(val_loss)
         
