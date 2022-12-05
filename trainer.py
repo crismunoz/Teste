@@ -11,12 +11,16 @@ class TrainArgs:
     """
 
     def __init__(
-        self, initial_epoch=0, epochs=10, adversary_loss_weight=0.1, initial_lr=0.001, patience=20, min_delta=1e-5
+        self, 
+        adversary_loss_weight=0.1, 
+        initial_lr=0.001,
+        patience=20,
+        min_delta=1e-5,
+        epochs=10, 
     ):
         self.epochs = epochs
         self.adversary_loss_weight = adversary_loss_weight
         self.initial_lr = initial_lr
-        self.initial_epoch = initial_epoch
         self.min_delta = min_delta
         self.patience = patience 
 

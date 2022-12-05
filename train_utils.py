@@ -37,8 +37,11 @@ def train_model(train, test, config, name):
     from trainer import TrainArgs, Trainer
     from model import AdversarialDebiasingModel
     from torch.utils.data import DataLoader
-    train_args = TrainArgs(epochs=config.epochs, 
-                           adversary_loss_weight=config.adversary_loss_weight)
+    train_args = TrainArgs(initial_lr = config.initial_lr,
+                           patience = config.patience,
+                           min_delta = config.min_delta,
+                           epochs = config.epochs, 
+                           adversary_loss_weight = config.adversary_loss_weight)
     traindataset = AdvDebDataset(*train, device=config.device)
     testdataset = AdvDebDataset(*test, device=config.device)
     train_dataloader = DataLoader(traindataset, batch_size=config.batch_size, shuffle=True)

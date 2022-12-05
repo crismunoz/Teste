@@ -9,6 +9,10 @@ data = train_test_split(*data, test_size=0.2)
 train, test = data[::2],data[1::2]
 
 class Config:
+    initial_lr=0.001
+    patience=30
+    min_delta=1e-5
+    
     hidden_size=32
     keep_prob=0.0
     device='cuda'
