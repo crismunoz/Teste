@@ -1,7 +1,8 @@
 from data import load_data
 import numpy as np
 import torch
-    
+from sklearn.preprocessing import StandardScaler
+
 class Config:
     initial_lr=0.001
     patience=30
@@ -32,9 +33,21 @@ def load_dataset():
     return dataset
 
 def dataset_preprocessing(dataset):
+    time = StandardScaler().fit_transform(np.concatenate(dataset['time'])[:,None])
+    position = StandardScaler().fit_transform(np.concatenate(dataset['position'])[:,None])
+    params = StandardScaler().fit_transform(np.concatenate(dataset['params']))
+    
+    time_np = time[:-1,]
+    x0_np = position[:-1]
+    y_np = position[1:]
+    params_np = params[:-1,]
+    return time_np, x0_np, params_np, y_np
+
+def dataset_preprocessing2(dataset):
     time = np.concatenate(dataset['time'])
     position = np.concatenate(dataset['position'])
     params = np.concatenate(dataset['params'])
+    
     time_np = (time/np.max(time))[:-1,]
     position_np = position/np.max(position)
     x0_np = position_np[:-1]
