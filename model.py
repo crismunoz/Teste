@@ -23,7 +23,7 @@ class RegressorModel(nn.Module):
         super().__init__()
         self.core_model = core_model
         self.hidden1 = nn.Linear(hidden_size, hidden_size)
-        self.act = nn.ReLU()
+        self.act = nn.Tanh()
         self.hidden2 = nn.Linear(hidden_size, 1)
 
     def forward(self, time, x0, param):
@@ -42,7 +42,7 @@ class AdversarialModel(nn.Module):
         self.hidden2 = nn.Linear(hidden_size, 1)
         self.drop = nn.Dropout(keep_prob)
         self.out_act = nn.Sigmoid()
-        self.act = nn.ReLU()
+        self.act = nn.Tanh()
 
     def forward(self, time, x1, param, trainable=True):
         x = self.core_model(time, x1, param)
