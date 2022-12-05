@@ -7,11 +7,11 @@ class Config:
     patience=30
     min_delta=1e-5
     
-    hidden_size=32
+    hidden_size=64
     keep_prob=0.0
     device='cuda'
     batch_size=256
-    epochs=100
+    epochs=200
     feature_dim =3
     
 def load_dataset():
