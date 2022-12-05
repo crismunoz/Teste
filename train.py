@@ -21,7 +21,7 @@ config.use_debias = False
 config.adversary_loss_weight = None
 configs = {'normal':config}
 
-ad_los_ws = [0.001, 0.01, 0.02]
+ad_los_ws = [0.005, 0.01, 0.015]
 for adversary_loss_weight in ad_los_ws:
     config = Config()
     config.use_debias = True
@@ -34,14 +34,12 @@ errors_1 = {}
 errors_2 = {}
 for name,config in configs.items():
     running_loss , model = train_model(train, test, \
-        config, name=f'adv-{config.adversary_loss_weight}')
+        config, name=name)
     
     error_1 = []
-    for time, params, position in zip(dataset['time'],dataset['params'],dataset['position']):
-        error_1.append(evaluate(time, position, params, model, config.device, mode=1))
-        
     error_2 = []
     for time, params, position in zip(dataset['time'],dataset['params'],dataset['position']):
+        error_1.append(evaluate(time, position, params, model, config.device, mode=1))
         error_2.append(evaluate(time, position, params, model, config.device, mode=2))
                     
     running_losses[name] = running_loss
