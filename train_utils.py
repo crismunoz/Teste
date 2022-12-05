@@ -8,12 +8,12 @@ class Config:
     patience=30
     min_delta=1e-5
     
-    hidden_size=128
+    hidden_size=32
     keep_prob=0.05
     device='cuda'
     batch_size=256
     epochs=200
-    feature_dim =3
+    feature_dim = 5
     
 def load_dataset():
     bs = np.linspace(0, 0.25, 10)
@@ -52,8 +52,9 @@ class DataPreprocessor:
         time_np = time[:-1,]
         x0_np = position[:-1]
         y_np = position[1:]
+        next_time_np = time[1:,]
         params_np = params[:-1,]
-        return time_np, x0_np, params_np, y_np
+        return time_np, x0_np, params_np, y_np,next_time_np
 
 class DataPreprocessorMaxMin:
     def __init__(self):
@@ -62,8 +63,8 @@ class DataPreprocessorMaxMin:
         self.params_scaler = 1
     
     def fit_transform(self, time, position, params):
-        self.time_scaler = np.max(np.array(time)[:,None], axis=0)
-        self.position_scaler = np.max(np.array(position)[:,None], axis=0)
+        self.time_scaler = np.max(np.array(time)[:,None])
+        self.position_scaler = np.max(np.array(position)[:,None])
         self.params_scaler = np.max(params, axis=0)
         return self.transform(time, position, params)
         
@@ -78,8 +79,9 @@ class DataPreprocessorMaxMin:
         time_np = time[:-1,]
         x0_np = position[:-1]
         y_np = position[1:]
+        next_time_np = time[1:,]
         params_np = params[:-1,]
-        return time_np, x0_np, params_np, y_np
+        return time_np, x0_np, params_np, y_np, next_time_np
     
 def dataset_preprocessing2(dataset):
     time = np.concatenate(dataset['time'])
@@ -90,11 +92,12 @@ def dataset_preprocessing2(dataset):
     position_np = position/np.max(position)
     x0_np = position_np[:-1]
     y_np = position_np[1:]
+    next_time_np = (time/np.max(time))[1:,]
     params_np = (params/np.max(params, axis=0))[:-1,]
-    return time_np, x0_np, params_np, y_np
+    return time_np, x0_np, params_np, y_np, next_time_np
 
 
-def train_model(train, test, config, name):
+def train_model(X_train,X_test,y_train,y_test,next_time_train, next_time_test, config, name):
     from dataset import AdvDebDataset
     from trainer import TrainArgs, Trainer
     from model import AdversarialDebiasingModel
@@ -104,8 +107,8 @@ def train_model(train, test, config, name):
                            min_delta = config.min_delta,
                            epochs = config.epochs, 
                            adversary_loss_weight = config.adversary_loss_weight)
-    traindataset = AdvDebDataset(*train, device=config.device)
-    testdataset = AdvDebDataset(*test, device=config.device)
+    traindataset = AdvDebDataset(X_train,y_train,next_time_train, device=config.device)
+    testdataset = AdvDebDataset(X_test,y_test,next_time_test, device=config.device)
     train_dataloader = DataLoader(traindataset, batch_size=config.batch_size, shuffle=True)
     test_dataloader = DataLoader(testdataset, batch_size=config.batch_size, shuffle=True)
     adm = AdversarialDebiasingModel(config.feature_dim, config.hidden_size, config.keep_prob).to(config.device)
@@ -122,7 +125,7 @@ def inference(time, x0, params, model, device, mode):
     pa = np.array(params)
     
     data_len = len(t)
-    t = torch.Tensor(t.reshape([data_len,1])).type(torch.FloatTensor).to(device)
+    t = torch.Tensor(t.reshape([data_len, 1])).type(torch.FloatTensor).to(device)
     x0 = torch.Tensor(x0.reshape([data_len, -1])).type(torch.FloatTensor).to(device)
     pa = torch.Tensor(pa.reshape([data_len, -1])).type(torch.FloatTensor).to(device)
 
@@ -130,13 +133,15 @@ def inference(time, x0, params, model, device, mode):
         x00 = x0[0]
         pred_position = []
         for tt,paa in zip(t,pa):
-            x00 = model.regressor(tt[None,...], x00[None,...], paa[None,...])[0]
+            x_inp = torch.concat([tt[None,...], x00[None,...], paa[None,...]], axis=1)
+            x00 = model.regressor(x_inp)[0]
             pred_position.append(x00.to('cpu').detach().numpy())
     
     elif mode == 2: 
         pred_position = []
         for tt,x00,paa in zip(t,x0,pa):
-            x00_ = model.regressor(tt[None,...], x00[None,...], paa[None,...])[0]
+            x_inp = torch.concat([tt[None,...], x00[None,...], paa[None,...]], axis=1)
+            x00_ = model.regressor(x_inp)[0]
             pred_position.append(x00_.to('cpu').detach().numpy())
         
     return np.array(pred_position).reshape(-1)

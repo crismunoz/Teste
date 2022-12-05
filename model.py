@@ -5,13 +5,12 @@ class TruncateModel(nn.Module):
     "Regressor Model, You can change the layer configuration as you wish!"
     def __init__(self, feature_dim, hidden_size):
         super().__init__()
-        self.hidden = nn.Linear(feature_dim+2, hidden_size)
+        self.hidden = nn.Linear(feature_dim, hidden_size)
         self.hidden2 = nn.Linear(hidden_size, hidden_size)
         self.act = nn.Tanh()
 
-    def forward(self, time, x0, param):
-        x = torch.cat((time, x0, param), 1)
-        x = self.hidden(x)
+    def forward(self, inputs):
+        x = self.hidden(inputs)
         x = self.act(x)
         x = self.hidden2(x)
         x = self.act(x)
@@ -26,8 +25,8 @@ class RegressorModel(nn.Module):
         self.act = nn.Tanh()
         self.hidden2 = nn.Linear(hidden_size, 1)
 
-    def forward(self, time, x0, param):
-        x = self.core_model(time, x0, param)
+    def forward(self, inputs):
+        x = self.core_model(inputs)
         x = self.hidden1(x)
         x = self.act(x)
         x = self.hidden2(x)
@@ -44,8 +43,8 @@ class AdversarialModel(nn.Module):
         self.out_act = nn.Sigmoid()
         self.act = nn.Tanh()
 
-    def forward(self, time, x1, param, trainable=True):
-        x = self.core_model(time, x1, param)
+    def forward(self, inputs, trainable=True):
+        x = self.core_model(inputs)
         x = self.drop(x)
         x = self.hidden1(x)
         x = self.act(x)
@@ -66,7 +65,7 @@ class AdversarialDebiasingModel(nn.Module):
         self.regressor = RegressorModel(hidden_size, core_model)
         self.adversarial = AdversarialModel(hidden_size, keep_prob, core_model)
 
-    def forward(self, time, x0, param):
-        y_logits = self.regressor(time, x0, param)
-        z_prob, _ = self.adversarial(time, y_logits, param)
+    def forward(self, inputs):
+        y_logits = self.regressor(inputs)
+        z_prob, _ = self.adversarial(inputs)
         return y_logits, z_prob

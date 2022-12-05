@@ -10,29 +10,29 @@ import random
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--adversary_loss_weight', type=float, default=-0.01)
+    parser.add_argument('--adversary_loss_weight', type=float, default=0.01)
     args = parser.parse_args()
     
-    data_prep = DataPreprocessorMaxMin()
     dataset = load_dataset()
     data_size = len(dataset['time'])
     indexes = list(range(data_size))
     random.shuffle(indexes)
     train_size = int(0.8*data_size)
     test_size = data_size - train_size
-    print(f"train_size: {train_size}\ntest_size: {test_size}")
     train_index = indexes[:train_size]
-    test_index = indexes[:train_size]
-    select = lambda x,idx: np.concatenate([x[i] for i in idx])
-    time = select(dataset['time'], train_index)
-    position = select(dataset['position'],train_index)
-    params = select(dataset['params'],train_index)
-    train = data_prep.fit_transform(time=time, position=position, params=params)
-    
-    time = select(dataset['time'], test_index)
-    position = select(dataset['position'],test_index)
-    params = select(dataset['params'],test_index)
-    test = data_prep.transform(time=time, position=position, params=params)
+    test_index = indexes[train_size:]
+    print(f"train_size: {len(train_index)}\ntest_size: {len(test_index)}")
+    data_prep = DataPreprocessor()
+
+    def select_dataset(dataset, idx):
+        select = lambda x,idx: np.concatenate([x[i] for i in idx])
+        time = select(dataset['time'], idx)
+        position = select(dataset['position'],idx)
+        params = select(dataset['params'],idx)
+        return time, position, params
+
+    train = data_prep.fit_transform(*select_dataset(dataset, train_index))
+    test = data_prep.transform(*select_dataset(dataset, test_index))
 
     config = Config()
     if args.adversary_loss_weight > 0:
@@ -47,7 +47,19 @@ if __name__ == '__main__':
     output_folder = os.path.join('models',name)
     os.makedirs(output_folder, exist_ok=True)
     
-    running_loss , model = train_model(train, test, config, name=name)
+    X_train = np.concatenate(train[:3],axis=1)
+    X_test = np.concatenate(test[:3],axis=1)
+    y_train, next_time_train = train[-2:]
+    y_test, next_time_test = test[-2:]
+    print(f'X_train: {X_train.shape}')
+    print(f'X_test: {X_test.shape}')
+    print(f'y_train: {y_train.shape}')
+    print(f'y_test: {y_test.shape}')
+    print(f'next_time_train: {next_time_train.shape}')
+    print(f'next_time_test: {next_time_test.shape}')
+    
+    
+    running_loss , model = train_model(X_train, X_test, y_train, y_test, next_time_train, next_time_test, config, name=name)
     reg_loss = running_loss[0]['reg']
     adv_loss = running_loss[0]['adv']
     eval_loss = running_loss[1]
@@ -60,10 +72,11 @@ if __name__ == '__main__':
         time = select(dataset['time'], test_index)[ii]
         position = select(dataset['position'], test_index)[ii]
         params = select(dataset['params'], test_index)[ii]
-        time, x0, params, y_true = data_prep.transform(time=time, position=position, params=params)
-    
-        y_pred_1 = inference(time, x0, params, model, config.device, mode=1)
-        y_pred_2 = inference(time, x0, params, model, config.device, mode=2)
+        prep_dataset = data_prep.transform(time=time, position=position, params=params)
+        y_true = prep_dataset[-2]
+        
+        y_pred_1 = inference(*prep_dataset[:3], model, config.device, mode=1)
+        y_pred_2 = inference(*prep_dataset[:3], model, config.device, mode=2)
         y_trues.append(y_true.reshape(-1))
         y_pred_1s.append(y_pred_1)
         y_pred_2s.append(y_pred_2)

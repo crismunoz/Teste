@@ -54,15 +54,15 @@ class Trainer:
         self.loss_reg_fn = nn.MSELoss()
         self.loss_adv_fn = nn.BCELoss()
 
-        self.optimizer_reg = optim.Adam(
+        self.optimizer_reg = optim.SGD(
             self.adverarial_debiasing_model.regressor.parameters(),
             lr=self.train_args.initial_lr,
-            #momentum=0.9,
+            momentum=0.9,
         )
-        self.optimizer_adv = optim.Adam(
+        self.optimizer_adv = optim.SGD(
             self.adverarial_debiasing_model.adversarial.parameters(),
             lr=self.train_args.initial_lr,
-            #momentum=0.9,
+            momentum=0.9,
         )
 
         self.scheduler_reg = torch.optim.lr_scheduler.LinearLR(
@@ -74,11 +74,12 @@ class Trainer:
 
     def train_step_with_debias(self, data):
         """one step advesarial training classifier"""
-        inputs, (labels, neg, pos) = data
-        outputs = self.adverarial_debiasing_model(*inputs)
-
+        inputs, (labels, time_labels, neg, pos) = data
+        outputs = self.adverarial_debiasing_model(inputs)
+        fake_inputs = torch.concat((time_labels, outputs[0], inputs[:,2:]),axis=1)
+        z_prob_neg, _ = self.adverarial_debiasing_model.adversarial(fake_inputs)
         # grad classifier Loss - grad adversarial Loss
-        loss_adv = self.loss_adv_fn(outputs[1], neg)
+        loss_adv = self.loss_adv_fn(z_prob_neg, neg) + self.loss_adv_fn(outputs[1], pos)
 
         regressor_params = list(
             self.adverarial_debiasing_model.regressor.parameters()
@@ -94,11 +95,18 @@ class Trainer:
         self.optimizer_reg.step()
 
         # grad adversarial Loss POS
-        new_inputs = (inputs[0], labels[:,0], inputs[2])
-        z_prob_pos, _ = self.adverarial_debiasing_model.adversarial(*new_inputs)
-        #z_prob_neg, _ = self.adverarial_debiasing_model.adversarial(*inputs)
+        #fake_inputs = torch.stack((time_labels, outputs[1], inputs[:,2]),axis=1)
+        #z_prob_neg, _ = self.adverarial_debiasing_model.adversarial(fake_inputs)
+        #z_prob_pos, _ = self.adverarial_debiasing_model.adversarial(inputs)
+        outputs = self.adverarial_debiasing_model(inputs)
+        fake_inputs = torch.concat((time_labels, outputs[0], inputs[:,2:]),axis=1)
+        z_prob_neg, _ = self.adverarial_debiasing_model.adversarial(fake_inputs)
+        # grad classifier Loss - grad adversarial Loss
+        loss_adv = self.loss_adv_fn(z_prob_neg, neg) + self.loss_adv_fn(outputs[1], pos)
         
-        loss_adv = self.loss_adv_fn(z_prob_pos, pos) ##+ self.loss_adv_fn(z_prob_neg, neg)
+        #output = self.adverarial_debiasing_model.regressor(inputs)
+        #loss_reg = self.loss_reg_fn(output, labels)
+        #loss_adv = self.loss_adv_fn(z_prob_pos, pos) + self.loss_adv_fn(z_prob_neg, neg)
         adversarial_params = list(
             self.adverarial_debiasing_model.adversarial.parameters()
         )
@@ -113,8 +121,8 @@ class Trainer:
 
     def train_step(self, data):
         """Traditional classifier tran step"""
-        inputs, (labels, neg, pos) = data
-        output = self.adverarial_debiasing_model.regressor(*inputs)
+        inputs, (labels,_, _, _) = data
+        output = self.adverarial_debiasing_model.regressor(inputs)
 
         # Regressor
         loss_reg = self.loss_reg_fn(output, labels)
@@ -129,8 +137,8 @@ class Trainer:
 
     def get_loss(self, data):
         """Traditional classifier tran step"""
-        inputs, (labels, neg, pos) = data
-        outputs = self.adverarial_debiasing_model(*inputs)
+        inputs, (labels, _, neg, pos) = data
+        outputs = self.adverarial_debiasing_model(inputs)
         loss_reg = self.loss_reg_fn(outputs[0], labels)
         return loss_reg
     
@@ -141,6 +149,7 @@ class Trainer:
         eval_loss = []
         pbar = tqdm(range(self.train_args.epochs), total=self.train_args.epochs)
         for ep in pbar:
+          self.adverarial_debiasing_model.train()
           for i, data in enumerate(self.trainloader, 0):
                           
               loss_reg, loss_adv = (
@@ -160,7 +169,7 @@ class Trainer:
         
           self.adverarial_debiasing_model.eval()
           loss = [self.get_loss(data).item() for data in self.testloader]
-          self.adverarial_debiasing_model.train()
+
           val_loss = sum(loss)/len(loss)
           eval_loss.append(val_loss)
 
