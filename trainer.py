@@ -94,7 +94,7 @@ class Trainer:
         self.optimizer_reg.step()
 
         # grad adversarial Loss POS
-        new_inputs = (inputs[0], labels, inputs[2])
+        new_inputs = (inputs[0], labels[:,0], inputs[2])
         z_prob_pos, _ = self.adverarial_debiasing_model.adversarial(*new_inputs)
         z_prob_neg, _ = self.adverarial_debiasing_model.adversarial(*inputs)
         
