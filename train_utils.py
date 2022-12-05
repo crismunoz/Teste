@@ -1,7 +1,18 @@
-from sklearn.metrics import mean_squared_error
 from data import load_data
 import numpy as np
 import torch
+    
+class Config:
+    initial_lr=0.001
+    patience=30
+    min_delta=1e-5
+    
+    hidden_size=32
+    keep_prob=0.0
+    device='cuda'
+    batch_size=256
+    epochs=100
+    feature_dim =3
     
 def load_dataset():
     bs = np.linspace(0, 0.25, 10)
@@ -78,4 +89,4 @@ def evaluate(time, position, params, model, device, mode):
             x00_ = model.regressor(tt[None,...], x00[None,...], paa[None,...])[0]
             pred_position.append(x00_.to('cpu').detach().numpy())
         
-    return mean_squared_error(y.reshape(-1), np.array(pred_position).reshape(-1))
+    return y.reshape(-1), np.array(pred_position).reshape(-1)
