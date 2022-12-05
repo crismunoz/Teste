@@ -12,7 +12,7 @@ class Config:
     keep_prob=0.05
     device='cuda'
     batch_size=256
-    epochs=20
+    epochs=200
     feature_dim =3
     
 def load_dataset():
