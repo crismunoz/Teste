@@ -96,9 +96,9 @@ class Trainer:
         # grad adversarial Loss POS
         new_inputs = (inputs[0], labels[:,0], inputs[2])
         z_prob_pos, _ = self.adverarial_debiasing_model.adversarial(*new_inputs)
-        z_prob_neg, _ = self.adverarial_debiasing_model.adversarial(*inputs)
+        #z_prob_neg, _ = self.adverarial_debiasing_model.adversarial(*inputs)
         
-        loss_adv = self.loss_adv_fn(z_prob_pos, pos) + self.loss_adv_fn(z_prob_neg, neg)
+        loss_adv = self.loss_adv_fn(z_prob_pos, pos) ##+ self.loss_adv_fn(z_prob_neg, neg)
         adversarial_params = list(
             self.adverarial_debiasing_model.adversarial.parameters()
         )
@@ -114,10 +114,10 @@ class Trainer:
     def train_step(self, data):
         """Traditional classifier tran step"""
         inputs, (labels, neg, pos) = data
-        outputs = self.adverarial_debiasing_model(*inputs)
+        output = self.adverarial_debiasing_model.regressor(*inputs)
 
-        # Classifier
-        loss_reg = self.loss_reg_fn(outputs[0], labels)
+        # Regressor
+        loss_reg = self.loss_reg_fn(output, labels)
         regressor_params = list(
             self.adverarial_debiasing_model.regressor.parameters()
         )

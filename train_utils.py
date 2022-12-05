@@ -8,7 +8,7 @@ class Config:
     patience=30
     min_delta=1e-5
     
-    hidden_size=64
+    hidden_size=128
     keep_prob=0.05
     device='cuda'
     batch_size=256
@@ -68,9 +68,12 @@ class DataPreprocessorMaxMin:
         return self.transform(time, position, params)
         
     def transform(self, time, position, params):
-        time = 2*(np.array(time)[:,None]/self.time_scaler)-1
-        position = 2*(np.array(position)[:,None]/self.position_scaler)-1
-        params = 2*(np.array(params)/self.params_scaler)-1
+        #time = 2*(np.array(time)[:,None]/self.time_scaler)-1
+        #position = 2*(np.array(position)[:,None]/self.position_scaler)-1
+        #params = 2*(np.array(params)/self.params_scaler)-1
+        time = np.array(time)[:,None]/self.time_scaler
+        position = np.array(position)[:,None]/self.position_scaler
+        params = np.array(params)/self.params_scaler
         
         time_np = time[:-1,]
         x0_np = position[:-1]
