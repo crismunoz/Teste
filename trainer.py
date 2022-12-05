@@ -3,6 +3,7 @@ import torch
 import torch.optim as optim
 from torch import nn
 from tqdm import tqdm
+from utils import EarlyStopper,SaveChcekpoint
 
 class TrainArgs:
     """
@@ -10,25 +11,30 @@ class TrainArgs:
     """
 
     def __init__(
-        self, initial_epoch=0, epochs=10, adversary_loss_weight=0.1, initial_lr=0.001
+        self, initial_epoch=0, epochs=10, adversary_loss_weight=0.1, initial_lr=0.001, patience=20, min_delta=1e-5
     ):
         self.epochs = epochs
         self.adversary_loss_weight = adversary_loss_weight
         self.initial_lr = initial_lr
         self.initial_epoch = initial_epoch
+        self.min_delta = min_delta
+        self.patience = patience 
 
 class Trainer:
     """
     Trainer class support traditional classifier training and adverarial training.
     """
 
-    def __init__(self, adverarial_debiasing_model, trainloader, testloader, train_args, use_debias):
+    def __init__(self, adverarial_debiasing_model, trainloader, testloader, train_args, use_debias, name):
         self.train_args = train_args
         self.adverarial_debiasing_model = adverarial_debiasing_model
         self.trainloader = trainloader
         self.testloader = testloader
         self.use_debias = use_debias
         self.build()
+
+        self.early_stopping = EarlyStopper(patience=train_args.patience, min_delta=train_args.min_delta)
+        self.best_checkpoint = SaveChcekpoint(model_path=f'./models/{name}')
 
     def update_gradients(self, regressor_params, dloss_reg, dloss_adv):
         """update classifier gradients with adversarial model"""
@@ -127,6 +133,7 @@ class Trainer:
     
     def train(self):
         """Traditional one epoch"""
+        
         running_loss = {"reg": [], "adv": []}
         eval_loss = []
         for ep in tqdm(range(self.train_args.epochs), total=self.train_args.epochs):
@@ -148,9 +155,21 @@ class Trainer:
               self.scheduler_adv.step()
 
           loss = [self.get_loss(data).item() for data in self.testloader]
-          eval_loss.append(sum(loss)/len(loss))
+          val_loss = sum(loss)/len(loss)
+          eval_loss.append(val_loss)
+        
+          self.best_checkpoint.check_checkpoint(self.adverarial_debiasing_model, 
+                                           self.optimizer_reg, ep,val_loss)
               
+          if self.early_stopping.early_stop(val_loss):
+              break
+
           #log = f"[{self.train_args.initial_epoch + 1}, {i + 1:5d}] loss: {sum(running_loss['reg']) / len(running_loss['reg']):.3f} \
           #        adv_loss: {sum(running_loss['adv']) / len(running_loss['adv']):.3f}"
         return running_loss, eval_loss
+    
+    
+    def get_best_model(self):
+        self.best_checkpoint.load_weights(self.adverarial_debiasing_model, self.optimizer_reg)
+        return self.adverarial_debiasing_model
     
