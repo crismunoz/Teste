@@ -65,13 +65,12 @@ def train_model(train, test, config, name):
     model= trainer.get_best_model()
     return running_loss , model
 
-def evaluate(time, position, params, model, device, mode):
-    t = np.array(time)[:-1]
-    x0 = np.array(position)[:-1]
-    pa = np.array(params)[:-1,:]
-    y = np.array(position)[1:]
+def inference(time, x0, params, model, device, mode):
+    t = np.array(time)
+    x0 = np.array(x0)
+    pa = np.array(params)
     
-    data_len = len(t)
+    data_len = 1
     t = torch.Tensor(t.reshape([data_len,1])).type(torch.FloatTensor).to(device)
     x0 = torch.Tensor(x0.reshape([data_len, -1])).type(torch.FloatTensor).to(device)
     pa = torch.Tensor(pa.reshape([data_len, -1])).type(torch.FloatTensor).to(device)
@@ -89,4 +88,4 @@ def evaluate(time, position, params, model, device, mode):
             x00_ = model.regressor(tt[None,...], x00[None,...], paa[None,...])[0]
             pred_position.append(x00_.to('cpu').detach().numpy())
         
-    return y.reshape(-1), np.array(pred_position).reshape(-1)
+    return np.array(pred_position).reshape(-1)

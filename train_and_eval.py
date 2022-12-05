@@ -1,6 +1,6 @@
 from train_utils import load_dataset, dataset_preprocessing
 from sklearn.model_selection import train_test_split
-from train_utils import evaluate, train_model, Config
+from train_utils import inference, train_model, Config
 import pandas as pd
 import numpy as np
 import argparse
@@ -38,10 +38,10 @@ if __name__ == '__main__':
     y_trues = []
     y_pred_1s = []
     y_pred_2s = []
-    for time, params, position in zip(dataset['time'],dataset['params'],dataset['position']):
-        y_true, y_pred_1 = evaluate(time, position, params, model, config.device, mode=1)
-        y_true, y_pred_2 = evaluate(time, position, params, model, config.device, mode=2)
-        y_trues.append(y_true)
+    for time, x0, params, y_true in zip(*test):
+        y_pred_1 = inference(time, x0, params, model, config.device, mode=1)
+        y_pred_2 = inference(time, x0, params, model, config.device, mode=2)
+        y_trues.append(y_true.reshape(-1))
         y_pred_1s.append(y_pred_1)
         y_pred_2s.append(y_pred_2)
     y_trues = np.concatenate(y_trues, axis=0)
