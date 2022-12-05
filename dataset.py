@@ -20,7 +20,7 @@ class AdvDebDataset(Dataset):
 
     def __getitem__(self, idx):
         X = torch.tensor(self.X[idx]).type(torch.FloatTensor).to(self.device)
-        y = torch.tensor(self.y[idx, None]).type(torch.FloatTensor).to(self.device)
+        y = torch.tensor(self.y[idx]).type(torch.FloatTensor).to(self.device)
         next_time = torch.tensor(self.next_time[idx]).type(torch.FloatTensor).to(self.device)
         neg_exp = torch.tensor([0]).type(torch.FloatTensor).to(self.device)+EPS
         pos_exp = torch.tensor([1]).type(torch.FloatTensor).to(self.device)-EPS
