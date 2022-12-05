@@ -139,7 +139,8 @@ class Trainer:
         
         running_loss = {"reg": [], "adv": []}
         eval_loss = []
-        for ep in tqdm(range(self.train_args.epochs), total=self.train_args.epochs):
+        pbar = tqdm(range(self.train_args.epochs), total=self.train_args.epochs)
+        for ep in pbar:
           for i, data in enumerate(self.trainloader, 0):
                           
               loss_reg, loss_adv = (
@@ -162,7 +163,9 @@ class Trainer:
           self.adverarial_debiasing_model.train()
           val_loss = sum(loss)/len(loss)
           eval_loss.append(val_loss)
-        
+
+          pbar.set_description(f"val_loss: {val_loss:.4f}")
+          
           self.best_checkpoint.check_checkpoint(self.adverarial_debiasing_model, 
                                            self.optimizer_reg, ep,val_loss)
               

@@ -12,7 +12,7 @@ class Config:
     keep_prob=0.05
     device='cuda'
     batch_size=256
-    epochs=200
+    epochs=20
     feature_dim =3
     
 def load_dataset():
@@ -32,17 +32,52 @@ def load_dataset():
                 dataset['params'].append([[g,h,b]]*n)
     return dataset
 
-def dataset_preprocessing(dataset):
-    time = StandardScaler().fit_transform(np.concatenate(dataset['time'])[:,None])
-    position = StandardScaler().fit_transform(np.concatenate(dataset['position'])[:,None])
-    params = StandardScaler().fit_transform(np.concatenate(dataset['params']))
+class DataPreprocessor:
+    def __init__(self):
+        self.time_scaler = StandardScaler()
+        self.position_scaler = StandardScaler()
+        self.params_scaler = StandardScaler()
     
-    time_np = time[:-1,]
-    x0_np = position[:-1]
-    y_np = position[1:]
-    params_np = params[:-1,]
-    return time_np, x0_np, params_np, y_np
+    def fit_transform(self, time, position, params):
+        self.time_scaler.fit(np.array(time)[:,None])
+        self.position_scaler.fit(np.array(position)[:,None])
+        self.params_scaler.fit(params)
+        return self.transform(time, position, params)
+        
+    def transform(self, time, position, params):
+        time = self.time_scaler.transform(np.array(time)[:,None])
+        position = self.position_scaler.transform(np.array(position)[:,None])
+        params = self.params_scaler.transform(params)
+        
+        time_np = time[:-1,]
+        x0_np = position[:-1]
+        y_np = position[1:]
+        params_np = params[:-1,]
+        return time_np, x0_np, params_np, y_np
 
+class DataPreprocessorMaxMin:
+    def __init__(self):
+        self.time_scaler = 1
+        self.position_scaler = 1
+        self.params_scaler = 1
+    
+    def fit_transform(self, time, position, params):
+        self.time_scaler = np.max(np.array(time)[:,None], axis=0)
+        self.position_scaler = np.max(np.array(position)[:,None], axis=0)
+        self.params_scaler = np.max(params, axis=0)
+        return self.transform(time, position, params)
+        
+    def transform(self, time, position, params):
+        time = 2*(np.array(time)[:,None]/self.time_scaler)-1
+        position = 2*(np.array(position)[:,None]/self.position_scaler)-1
+        params = 2*(np.array(params)/self.params_scaler)-1
+        
+        time_np = time[:-1,]
+        x0_np = position[:-1]
+        y_np = position[1:]
+        params_np = params[:-1,]
+        return time_np, x0_np, params_np, y_np
+    
 def dataset_preprocessing2(dataset):
     time = np.concatenate(dataset['time'])
     position = np.concatenate(dataset['position'])
@@ -83,7 +118,7 @@ def inference(time, x0, params, model, device, mode):
     x0 = np.array(x0)
     pa = np.array(params)
     
-    data_len = 1
+    data_len = len(t)
     t = torch.Tensor(t.reshape([data_len,1])).type(torch.FloatTensor).to(device)
     x0 = torch.Tensor(x0.reshape([data_len, -1])).type(torch.FloatTensor).to(device)
     pa = torch.Tensor(pa.reshape([data_len, -1])).type(torch.FloatTensor).to(device)
