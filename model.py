@@ -61,9 +61,10 @@ class AdversarialDebiasingModel(nn.Module):
     """
     def __init__(self, feature_dim, hidden_size, keep_prob):
         super().__init__()
-        core_model = TruncateModel(feature_dim, hidden_size)
-        self.regressor = RegressorModel(hidden_size, core_model)
-        self.adversarial = AdversarialModel(hidden_size, keep_prob, core_model)
+        core_model1 = TruncateModel(feature_dim, hidden_size)
+        core_model2 = TruncateModel(feature_dim, hidden_size)
+        self.regressor = RegressorModel(hidden_size, core_model1)
+        self.adversarial = AdversarialModel(hidden_size, keep_prob, core_model2)
 
     def forward(self, inputs):
         y_logits = self.regressor(inputs)
