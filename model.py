@@ -7,7 +7,7 @@ class TruncateModel(nn.Module):
         super().__init__()
         self.hidden = nn.Linear(feature_dim, hidden_size)
         self.hidden2 = nn.Linear(hidden_size, hidden_size)
-        self.act = nn.Tanh()
+        self.act = nn.ReLU()
 
     def forward(self, inputs):
         x = self.hidden(inputs)
@@ -22,7 +22,7 @@ class RegressorModel(nn.Module):
         super().__init__()
         self.core_model = core_model
         self.hidden1 = nn.Linear(hidden_size, hidden_size)
-        self.act = nn.Tanh()
+        self.act = nn.ReLU()
         self.hidden2 = nn.Linear(hidden_size, 1)
 
     def forward(self, inputs):
@@ -41,7 +41,7 @@ class AdversarialModel(nn.Module):
         self.hidden2 = nn.Linear(hidden_size, 1)
         self.drop = nn.Dropout(keep_prob)
         self.out_act = nn.Sigmoid()
-        self.act = nn.Tanh()
+        self.act = nn.ReLU()
 
     def forward(self, inputs, trainable=True):
         x = self.core_model(inputs)

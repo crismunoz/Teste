@@ -8,7 +8,7 @@ class Config:
     patience=200
     min_delta=1e-5
     
-    hidden_size=32
+    hidden_size=64
     keep_prob=0.05
     device='cuda'
     batch_size=256

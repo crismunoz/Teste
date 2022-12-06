@@ -46,7 +46,7 @@ class Trainer:
         for param, grad, grad_adv in zip(regressor_params, dloss_reg, dloss_adv):
             unit_adversary_grad = normalize(grad_adv)
             grad -= torch.sum(grad * unit_adversary_grad) * unit_adversary_grad
-            grad -= self.train_args.adversary_loss_weight * grad_adv
+            grad += self.train_args.adversary_loss_weight * grad_adv
             param.grad = grad
 
     def build(self):
