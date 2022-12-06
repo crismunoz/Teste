@@ -54,15 +54,15 @@ class Trainer:
         self.loss_reg_fn = nn.MSELoss()
         self.loss_adv_fn = nn.BCELoss()
 
-        self.optimizer_reg = optim.SGD(
+        self.optimizer_reg = optim.Adam(
             self.adverarial_debiasing_model.regressor.parameters(),
             lr=self.train_args.initial_lr,
-            momentum=0.9,
+            #momentum=0.9,
         )
-        self.optimizer_adv = optim.SGD(
+        self.optimizer_adv = optim.Adam(
             self.adverarial_debiasing_model.adversarial.parameters(),
             lr=self.train_args.initial_lr,
-            momentum=0.9,
+            #momentum=0.9,
         )
 
         self.scheduler_reg = torch.optim.lr_scheduler.LinearLR(
@@ -172,8 +172,9 @@ class Trainer:
 
           val_loss = sum(loss)/len(loss)
           eval_loss.append(val_loss)
-
-          pbar.set_description(f"val_loss: {val_loss:.4f}")
+          adv_loss = np.mean(running_loss["adv"])
+          add_desc = f"adv: {adv_loss}"
+          pbar.set_description(f"val_loss: {val_loss:.4f} " + add_desc)
           
           self.best_checkpoint.check_checkpoint(self.adverarial_debiasing_model, 
                                            self.optimizer_reg, ep,val_loss)

@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 
 class Config:
     initial_lr=0.001
-    patience=30
+    patience=100
     min_delta=1e-5
     
     hidden_size=32
