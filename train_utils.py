@@ -5,14 +5,14 @@ from sklearn.preprocessing import StandardScaler
 
 class Config:
     initial_lr=0.001
-    patience=100
+    patience=200
     min_delta=1e-5
     
     hidden_size=32
     keep_prob=0.05
     device='cuda'
     batch_size=256
-    epochs=200
+    epochs=400
     feature_dim = 5
     
 def load_dataset():
